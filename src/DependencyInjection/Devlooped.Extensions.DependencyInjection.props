@@ -3,6 +3,7 @@
   <PropertyGroup>
     <DevloopedExtensionsDependencyInjectionVersion>42.42.42</DevloopedExtensionsDependencyInjectionVersion>
     <AddServiceAttribute Condition="'$(AddServiceAttribute)' == ''">true</AddServiceAttribute>
+    <AddServicesExtension Condition="'$(AddServicesExtension)' == ''">true</AddServicesExtension>
   </PropertyGroup>
 
   <ItemGroup>

@@ -12,19 +12,29 @@
     <PackFolder>analyzers/dotnet</PackFolder>
     <IsRoslynComponent>true</IsRoslynComponent>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <DefineConstants>$(DefineConstants);DDI_ADDSERVICE</DefineConstants>
+    <DefineConstants>$(DefineConstants);DDI_ADDSERVICE;DDI_ADDSERVICES</DefineConstants>
     <ImplicitUsings>false</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Update="Devlooped.Extensions.DependencyInjection.props" CopyToOutputDirectory="PreserveNewest" PackFolder="buildTransitive" />
-    <None Update="Devlooped.Extensions.DependencyInjection.targets" CopyToOutputDirectory="PreserveNewest" PackFolder="buildTransitive" />
-    <!--
-    <Compile Update="AddServicesNoReflectionExtension.cs" Pack="true" />
-    <Compile Update="ServiceAttribute*.cs" Pack="true" />
-    -->
+    <PackageReference Include="NuGetizer" Version="1.2.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.2.0" Pack="false" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+    <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+    <PackageReference Include="ThisAssembly.Resources" Version="2.0.8" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Devlooped.Extensions.DependencyInjection.props" CopyToOutputDirectory="PreserveNewest" PackFolder="build" />
+    <None Update="Devlooped.Extensions.DependencyInjection.targets" CopyToOutputDirectory="PreserveNewest" PackFolder="build" />
     <EmbeddedCode Include="ServiceAttribute*.cs;AddServicesNoReflectionExtension.cs" />
   </ItemGroup>
+
+  <PropertyGroup Label="SponsorLink">
+    <CustomAfterMicrosoftCSharpTargets>$(MSBuildThisFileDirectory)..\SponsorLink\SponsorLink.Analyzer.targets</CustomAfterMicrosoftCSharpTargets>
+    <!-- We also bring in the additional packages that just customize ThisAssembly.Constants -->
+    <FundingPackageId>$(PackageId)</FundingPackageId>
+  </PropertyGroup>
 
   <Target Name="CopyEmbeddedCode" Inputs="@(EmbeddedCode)" Outputs="@(EmbeddedCode -> '$(IntermediateOutputPath)%(Filename).txt')">
     <Copy SourceFiles="@(EmbeddedCode)" DestinationFiles="@(EmbeddedCode -> '$(IntermediateOutputPath)%(Filename).txt')" SkipUnchangedFiles="true" />
@@ -35,14 +45,6 @@
       <EmbeddedResource Include="@(EmbeddedCode -> '$(IntermediateOutputPath)%(Filename).txt')" Link="%(EmbeddedCode.Filename).txt" Type="Non-Resx" />
     </ItemGroup>
   </Target>
-
-  <ItemGroup>
-    <PackageReference Include="NuGetizer" Version="1.2.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.2.0" Pack="false" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-    <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
-    <PackageReference Include="ThisAssembly.Resources" Version="2.0.8" PrivateAssets="all" />
-  </ItemGroup>
 
   <Target Name="PokePackageVersion" BeforeTargets="GetPackageContents" DependsOnTargets="CopyFilesToOutputDirectory" Condition="'$(dotnet-nugetize)' == '' and Exists('$(OutputPath)\Devlooped.Extensions.DependencyInjection.props')">
     <XmlPoke XmlInputPath="$(OutputPath)\Devlooped.Extensions.DependencyInjection.props" Query="/Project/PropertyGroup/DevloopedExtensionsDependencyInjectionVersion" Value="$(PackageVersion)" />

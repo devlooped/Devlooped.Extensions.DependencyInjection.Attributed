@@ -6,6 +6,8 @@
 [![License](https://img.shields.io/github/license/devlooped/DependencyInjection.Attributed.svg?color=blue)](https://github.com//devlooped/DependencyInjection.Attributed/blob/main/license.txt)
 [![Build](https://github.com/devlooped/DependencyInjection.Attributed/workflows/build/badge.svg?branch=main)](https://github.com/devlooped/DependencyInjection.Attributed/actions)
 
+<!-- include https://github.com/devlooped/.github/raw/main/sponsorlinkr.md -->
+
 <!-- #content -->
 
 Automatic compile-time service registrations for Microsoft.Extensions.DependencyInjection with no run-time dependencies, 

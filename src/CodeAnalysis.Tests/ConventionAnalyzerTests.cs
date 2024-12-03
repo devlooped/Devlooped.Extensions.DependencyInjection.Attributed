@@ -54,7 +54,7 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         var expected = Verifier.Diagnostic(ConventionsAnalyzer.AssignableTypeOfRequired).WithLocation(0);
         test.ExpectedDiagnostics.Add(expected);
@@ -98,7 +98,7 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         //var expected = Verifier.Diagnostic(ConventionsAnalyzer.AssignableTypeOfRequired).WithLocation(0);
         //test.ExpectedDiagnostics.Add(expected);
@@ -145,7 +145,7 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         var expected = Verifier.Diagnostic(ConventionsAnalyzer.OpenGenericType).WithLocation(0);
         test.ExpectedDiagnostics.Add(expected);

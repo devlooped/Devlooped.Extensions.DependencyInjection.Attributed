@@ -55,7 +55,7 @@ public class AddServicesAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         //var expected = Verifier.Diagnostic(AddServicesAnalyzer.NoAddServicesCall).WithLocation(0);
 
@@ -101,7 +101,7 @@ public class AddServicesAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         await test.RunAsync();
     }
@@ -142,7 +142,7 @@ public class AddServicesAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         var expected = Verifier.Diagnostic(AddServicesAnalyzer.NoAddServicesCall).WithLocation(0);
         test.ExpectedDiagnostics.Add(expected);
@@ -155,6 +155,11 @@ public class AddServicesAnalyzerTests(ITestOutputHelper Output)
     {
         var test = new AnalyzerTest
         {
+            // Make sure compilation defines the constant/symbol 'DDI_ADDSERVICES'
+            // so the generator can detect the presence of the extension method.
+            OptionsTransforms = {
+                (options) => options
+            },
             TestBehaviors = TestBehaviors.SkipGeneratedSourcesCheck,
             TestCode = """
             using System;
@@ -189,7 +194,7 @@ public class AddServicesAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        };
+        }.WithPreprocessorSymbols();
 
         var expected = Verifier.Diagnostic(AddServicesAnalyzer.NoAddServicesCall).WithLocation(0);
         test.ExpectedDiagnostics.Add(expected);

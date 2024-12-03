@@ -1,5 +1,24 @@
 # Changelog
 
+## [v2.1.0-rc](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-rc) (2024-12-03)
+
+[Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-beta...v2.1.0-rc)
+
+:sparkles: Implemented enhancements:
+
+- Optimize generator by checking invocations in the predicate [\#124](https://github.com/devlooped/DependencyInjection/pull/124) (@kzu)
+- Restore ability to customize namespace and extension class name [\#123](https://github.com/devlooped/DependencyInjection/pull/123) (@kzu)
+
+:bug: Fixed bugs:
+
+- Fix support for multiple \[Export\("contract"\)\] in MEF [\#121](https://github.com/devlooped/DependencyInjection/pull/121) (@kzu)
+
+:twisted_rightwards_arrows: Merged:
+
+- Add SL2 disclaimer to readme and package description [\#129](https://github.com/devlooped/DependencyInjection/pull/129) (@kzu)
+- Adopt SponsorLink v2 [\#127](https://github.com/devlooped/DependencyInjection/pull/127) (@kzu)
+- Adopt newer .NET branding color since .NET8+ [\#122](https://github.com/devlooped/DependencyInjection/pull/122) (@kzu)
+
 ## [v2.1.0-beta](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-beta) (2024-11-12)
 
 [Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.0.0...v2.1.0-beta)

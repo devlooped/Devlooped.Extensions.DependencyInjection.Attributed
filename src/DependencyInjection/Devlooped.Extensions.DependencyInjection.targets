@@ -1,4 +1,5 @@
 ﻿<Project>
+  <Import Project="..\..\buildTransitive\Devlooped.Sponsors.targets" Condition="Exists('..\..\buildTransitive\Devlooped.Sponsors.targets')"/>
 
   <PropertyGroup>
     <!-- Backwards compatiblity -->
@@ -6,6 +7,11 @@
     <DefineConstants Condition="'$(Language)' == 'C#' and '$(AddServiceAttribute)' == 'true'">$(DefineConstants);DDI_ADDSERVICE</DefineConstants>
     <DefineConstants Condition="'$(Language)' == 'C#' and '$(AddServicesExtension)' == 'true'">$(DefineConstants);DDI_ADDSERVICES</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Brings in the analyzer file to report installation time -->
+    <FundingPackageId Include="Devlooped.Extensions.DependencyInjection" />
+  </ItemGroup>
 
   <Target Name="_AddDDI_Constant" BeforeTargets="CoreCompile">
     <PropertyGroup>

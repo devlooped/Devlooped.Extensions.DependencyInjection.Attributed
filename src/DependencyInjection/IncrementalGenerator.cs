@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -290,6 +291,7 @@ public class IncrementalGenerator : IIncrementalGenerator
 
         builder.AppendLine(
           $$"""
+            #if DDI_ADDSERVICES
             using Microsoft.Extensions.DependencyInjection.Extensions;
             using System;
             
@@ -309,6 +311,7 @@ public class IncrementalGenerator : IIncrementalGenerator
                     }
                 }
             }
+            #endif
             """);
 
         ctx.AddSource(methodName + ".g", builder.ToString().Replace("\r\n", "\n").Replace("\n", Environment.NewLine));

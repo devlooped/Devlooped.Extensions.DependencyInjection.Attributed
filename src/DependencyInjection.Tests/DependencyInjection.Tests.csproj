@@ -3,7 +3,7 @@
   <Import Project="..\DependencyInjection\Devlooped.Extensions.DependencyInjection.props" />
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <RootNamespace>Tests</RootNamespace>
   </PropertyGroup>
@@ -28,6 +28,16 @@
     <Using Include="Xunit.Abstractions" />
   </ItemGroup>
 
+  <Import Project="..\SponsorLink\SponsorLink\buildTransitive\Devlooped.Sponsors.targets" />
   <Import Project="..\DependencyInjection\Devlooped.Extensions.DependencyInjection.targets" />
+  <Import Project="..\SponsorLink\SponsorLink.Analyzer.Tests.targets" />
+
+  <!-- Force immediate reporting of status, no install-time grace period -->
+  <PropertyGroup>
+    <SponsorLinkNoInstallGrace>true</SponsorLinkNoInstallGrace>
+  </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="SponsorLinkNoInstallGrace" />
+  </ItemGroup>
 
 </Project>

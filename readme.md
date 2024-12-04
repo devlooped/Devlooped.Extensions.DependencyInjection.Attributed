@@ -1,4 +1,4 @@
-![Icon](https://raw.githubusercontent.com/devlooped/DependencyInjection/main/assets/img/icon-32.png) .NET DependencyInjection via [Service] Attribute
+![Icon](https://raw.githubusercontent.com/devlooped/DependencyInjection/main/assets/img/icon-32.png) .NET DependencyInjection via conventions or [Service] attributes  
 ============
 
 [![Version](https://img.shields.io/nuget/vpre/Devlooped.Extensions.DependencyInjection.svg)](https://www.nuget.org/packages/Devlooped.Extensions.DependencyInjection)

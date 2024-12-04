@@ -22,7 +22,26 @@ namespace Devlooped.Extensions.DependencyInjection;
 [Generator(LanguageNames.CSharp)]
 public class IncrementalGenerator : IIncrementalGenerator
 {
-    record ServiceSymbol(INamedTypeSymbol Type, int Lifetime, TypedConstant? Key);
+    class ServiceSymbol(INamedTypeSymbol type, int lifetime, TypedConstant? key)
+    {
+        public INamedTypeSymbol Type => type;
+        public int Lifetime => lifetime;
+        public TypedConstant? Key => key;
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not ServiceSymbol other)
+                return false;
+
+            return type.Equals(other.Type, SymbolEqualityComparer.Default) &&
+                lifetime == other.Lifetime &&
+                Equals(key, other);
+        }
+
+        public override int GetHashCode()
+            => HashCode.Combine(SymbolEqualityComparer.Default.GetHashCode(type), lifetime, key);
+    }
+
     record ServiceRegistration(int Lifetime, TypeSyntax? AssignableTo, string? FullNameExpression)
     {
         Regex? regex;
@@ -54,8 +73,9 @@ public class IncrementalGenerator : IIncrementalGenerator
             attr.ConstructorArguments[0].Type?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::Microsoft.Extensions.DependencyInjection.ServiceLifetime";
 
         bool IsKeyedService(AttributeData attr) =>
-            (attr.AttributeClass?.Name == "ServiceAttribute" || attr.AttributeClass?.Name == "Service") &&
-            attr.AttributeClass?.IsGenericType == true &&
+            (attr.AttributeClass?.Name == "ServiceAttribute" || attr.AttributeClass?.Name == "Service" ||
+             attr.AttributeClass?.Name == "KeyedService" || attr.AttributeClass?.Name == "KeyedServiceAttribute") &&
+            //attr.AttributeClass?.IsGenericType == true &&
             attr.ConstructorArguments.Length == 2 &&
             attr.ConstructorArguments[1].Kind == TypedConstantKind.Enum &&
             attr.ConstructorArguments[1].Type?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::Microsoft.Extensions.DependencyInjection.ServiceLifetime";

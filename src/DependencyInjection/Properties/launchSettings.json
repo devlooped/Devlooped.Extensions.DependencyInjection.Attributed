@@ -3,10 +3,6 @@
     "Tests": {
       "commandName": "DebugRoslynComponent",
       "targetProject": "..\\DependencyInjection.Tests\\DependencyInjection.Tests.csproj"
-    },
-    "Console": {
-      "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\Samples\\ConsoleApp\\ConsoleApp.csproj"
     }
   }
 }

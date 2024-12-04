@@ -10,25 +10,13 @@ namespace Microsoft.Extensions.DependencyInjection
     /// </summary>
     /// <typeparam name="TKey">Type of service key.</typeparam>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [Obsolete("Use ServiceAttribute(object key, ServiceLifetime lifetime) instead.")]
     partial class ServiceAttribute<TKey> : Attribute
     {
         /// <summary>
         /// Annotates the service with the lifetime.
         /// </summary>
-        public ServiceAttribute(TKey key, ServiceLifetime lifetime = ServiceLifetime.Singleton)
-            => (Key, Lifetime)
-            = (key, lifetime);
-
-        /// <summary>
-        /// The key used to register the service in an <see cref="IServiceCollection"/>.
-        /// </summary>
-        public TKey Key { get; }
-                
-        /// <summary>
-        /// <see cref="ServiceLifetime"/> associated with a registered service 
-        /// in an <see cref="IServiceCollection"/>.
-        /// </summary>
-        public ServiceLifetime Lifetime { get; }
+        public ServiceAttribute(TKey key, ServiceLifetime lifetime = ServiceLifetime.Singleton) { }
     }
 }
 #endif

@@ -23,13 +23,12 @@ public class ConventionsAnalyzer : DiagnosticAnalyzer
         new DiagnosticDescriptor(
         "DDI003",
         "Open generic service implementations are not supported for convention-based registration.",
-        "Only the concrete (closed) implementations of the open generic interface will be registered Register open generic services explicitly using the built-in service collection methods.",
+        "Only the concrete (closed) implementations of the open generic interface will be registered. Register open generic services explicitly using the built-in service collection methods.",
         "Build",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(AssignableTypeOfRequired, OpenGenericType);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(AssignableTypeOfRequired, OpenGenericType);
 
     public override void Initialize(AnalysisContext context)
     {

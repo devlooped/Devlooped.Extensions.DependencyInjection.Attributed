@@ -1,10 +1,10 @@
-![Icon](https://raw.githubusercontent.com/devlooped/DependencyInjection.Attributed/main/assets/img/icon-32.png) .NET DependencyInjection via [Service] Attribute
+![Icon](https://raw.githubusercontent.com/devlooped/DependencyInjection/main/assets/img/icon-32.png) .NET DependencyInjection via [Service] Attribute
 ============
 
-[![Version](https://img.shields.io/nuget/vpre/Devlooped.Extensions.DependencyInjection.Attributed.svg)](https://www.nuget.org/packages/Devlooped.Extensions.DependencyInjection.Attributed)
-[![Downloads](https://img.shields.io/nuget/dt/Devlooped.Extensions.DependencyInjection.Attributed.svg)](https://www.nuget.org/packages/Devlooped.Extensions.DependencyInjection.Attributed)
-[![License](https://img.shields.io/github/license/devlooped/DependencyInjection.Attributed.svg?color=blue)](https://github.com//devlooped/DependencyInjection.Attributed/blob/main/license.txt)
-[![Build](https://github.com/devlooped/DependencyInjection.Attributed/workflows/build/badge.svg?branch=main)](https://github.com/devlooped/DependencyInjection.Attributed/actions)
+[![Version](https://img.shields.io/nuget/vpre/Devlooped.Extensions.DependencyInjection.svg)](https://www.nuget.org/packages/Devlooped.Extensions.DependencyInjection)
+[![Downloads](https://img.shields.io/nuget/dt/Devlooped.Extensions.DependencyInjection.svg)](https://www.nuget.org/packages/Devlooped.Extensions.DependencyInjection)
+[![License](https://img.shields.io/github/license/devlooped/DependencyInjection.svg?color=blue)](https://github.com//devlooped/DependencyInjection/blob/main/license.txt)
+[![Build](https://github.com/devlooped/DependencyInjection/actions/workflows/build.yml/badge.svg)](https://github.com/devlooped/DependencyInjection/actions/workflows/build.yml)
 
 <!-- include https://github.com/devlooped/.github/raw/main/sponsorlinkr.md -->
 *This project uses [SponsorLink](https://github.com/devlooped#sponsorlink) to attribute sponsor status (direct, indirect or implicit).*
@@ -19,8 +19,15 @@ from conventions or attributes.
 
 ## Usage
 
-After [installing the nuget package](https://www.nuget.org/packages/Devlooped.Extensions.DependencyInjection.Attributed), 
-a new `[Service(ServiceLifetime)]` attribute will be available to annotate your types:
+The package supports two complementary ways to register services in the DI container, both of which are source-generated at compile-time 
+and therefore have no run-time dependencies or reflection overhead:
+
+- **Attribute-based**: annotate your services with `[Service]` or `[Service<TKey>]` attributes to register them in the DI container.
+- **Convention-based**: register services by type or name using a convention-based approach.
+
+### Attribute-based
+
+The `[Service(ServiceLifetime)]` attribute is available to explicitly annotate types for registration:
 
 ```csharp
 [Service(ServiceLifetime.Scoped)]
@@ -70,6 +77,8 @@ And that's it. The source generator will discover annotated types in the current
 project and all its references too. Since the registration code is generated at 
 compile-time, there is no run-time reflection (or dependencies) whatsoever.
 
+### Convention-based
+
 You can also avoid attributes entirely by using a convention-based approach, which 
 is nevertheless still compile-time checked and source-generated. This allows 
 registering services for which you don't even have the source code to annotate:
@@ -81,6 +90,9 @@ builder.Services.AddServices(typeof(IRepository), ServiceLifetime.Scoped);
 // ...
 ```
 
+This will register all types in the current project and its references that are 
+assignable to `IRepository`, with the specified lifetime.
+
 You can also use a regular expression to match services by name instead:
 
 ```csharp
@@ -90,15 +102,15 @@ builder.Services.AddServices(".*Service$");  // defaults to ServiceLifetime.Sing
 // ...
 ```
 
-Or a combination of both, as needed. In all cases, NO run-time reflection is 
-ever performed, and the compile-time source generator will evaluate the types 
-that are assignable to the given type or matching full type names and emit 
-the typed registrations as needed.
+You can use a combination of both, as needed. In all cases, NO run-time reflection is 
+ever performed, and the compile-time source generator will evaluate the types that are 
+assignable to the given type or matching full type names and emit the typed registrations 
+as needed.
 
 ### Keyed Services
 
 [Keyed services](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-8.0#keyed-services) 
-are also supported by a separate generic `[Service]` attribute, like:
+are also supported by providing a key with the `[Service]` attribute. For example:
 
 ```csharp
 public interface INotificationService
@@ -106,14 +118,14 @@ public interface INotificationService
     string Notify(string message);
 }
 
-[Service<string>("sms")]
+[Service("sms")]
 public class SmsNotificationService : INotificationService
 {
     public string Notify(string message) => $"[SMS] {message}";
 }
 
-[Service<string>("email")]
-[Service<string>("default")]
+[Service("email")]
+[Service("default")]
 public class EmailNotificationService : INotificationService
 {
     public string Notify(string message) => $"[Email] {message}";
@@ -141,7 +153,7 @@ Note you can also register the same service using multiple keys, as shown in the
 
 ## How It Works
 
-The generated code that implements the registration looks like the following:
+In all cases, the generated code that implements the registration looks like the following:
 
 ```csharp
 static partial class AddServicesExtension
@@ -157,7 +169,7 @@ static partial class AddServicesExtension
 ```
 
 Note how the service is registered as scoped with its own type first, and the 
-other two registrations just retrieve the same (according to its defined 
+other two registrations just retrieve the same service (according to its defined 
 lifetime). This means the instance is reused and properly registered under 
 all implemented interfaces automatically.
 
@@ -170,6 +182,8 @@ provider by the implementation factory too, like:
 ```csharp
 services.AddScoped(s => new MyService(s.GetRequiredService<IMyDependency>(), ...));
 ```
+
+Keyed services will emit AddKeyedXXX methods instead.
 
 ## MEF Compatibility
 
@@ -237,16 +251,7 @@ package from your library projects, you can just declare it like so:
 public class ServiceAttribute : Attribute
 {
     public ServiceAttribute(ServiceLifetime lifetime = ServiceLifetime.Singleton) { }
-}
-```
-
-Likewise for the keyed service version:
-
-```csharp
-[AttributeUsage(AttributeTargets.Class)]
-public class ServiceAttribute<TKey> : Attribute
-{
-    public ServiceAttribute(TKey key, ServiceLifetime lifetime = ServiceLifetime.Singleton) { }
+    public ServiceAttribute(object key, ServiceLifetime lifetime = ServiceLifetime.Singleton) { }
 }
 ```
 
@@ -260,11 +265,20 @@ that is adding the services to the collection!
 The attribute is matched by simple name, so it can exist in any namespace. 
 
 If you want to avoid adding the attribute to the project referencing this package, 
-set the `$(AddServiceAttribute)` to `true` via MSBuild:
+set the `$(AddServiceAttribute)` to `false` via MSBuild:
 
 ```xml
 <PropertyGroup>
   <AddServiceAttribute>false</AddServiceAttribute>
+</PropertyGroup>
+```
+
+If you want to avoid generating the `AddServices` extension method to the project referencing 
+this package, set the `$(AddServicesExtension)` to `false` via MSBuild:
+
+```xml
+<PropertyGroup>
+  <AddServicesExtension>false</AddServicesExtension>
 </PropertyGroup>
 ```
 
@@ -296,7 +310,7 @@ respectively.
 # Dogfooding
 
 [![CI Version](https://img.shields.io/endpoint?url=https://shields.kzu.app/vpre/Devlooped.Extensions.DependencyInjection/main&label=nuget.ci&color=brightgreen)](https://pkg.kzu.app/index.json)
-[![Build](https://github.com/devlooped/DependencyInjection/workflows/build/badge.svg?branch=main)](https://github.com/devlooped/DependencyInjection/actions)
+[![Build](https://github.com/devlooped/DependencyInjection/actions/workflows/build.yml/badge.svg)](https://github.com/devlooped/DependencyInjection/actions/workflows/build.yml)
 
 We also produce CI packages from branches and pull requests so you can dogfood builds as quickly as they are produced. 
 

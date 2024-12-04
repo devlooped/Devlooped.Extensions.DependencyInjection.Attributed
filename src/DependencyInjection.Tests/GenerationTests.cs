@@ -319,31 +319,31 @@ public class ObservableService : IObservable<MyEvent>
     public IDisposable Subscribe(IObserver<MyEvent> observer) => throw new NotImplementedException();
 }
 
-[Service<int>(42, ServiceLifetime.Singleton)]
+[Service(42, ServiceLifetime.Singleton)]
 public class KeyedSingletonService : IFormattable
 {
     public string ToString(string? format, IFormatProvider? formatProvider) => throw new NotImplementedException();
 }
 
-[Service<PlatformID>(PlatformID.Win32NT, ServiceLifetime.Transient)]
+[Service(PlatformID.Win32NT, ServiceLifetime.Transient)]
 public class KeyedTransientService : ICloneable
 {
     public object Clone() => throw new NotImplementedException();
 }
 
-[Service<string>("A", ServiceLifetime.Scoped)]
+[Service("A", ServiceLifetime.Scoped)]
 public class KeyedScopedService : IComparable
 {
     public int CompareTo(object? obj) => throw new NotImplementedException();
 }
 
-[Service<string>("FromKeyed", ServiceLifetime.Scoped)]
+[Service("FromKeyed", ServiceLifetime.Scoped)]
 public class FromKeyedDependency([FromKeyedServices(42)] IFormattable dependency)
 {
     public IFormattable Dependency => dependency;
 }
 
-[Service<string>("FromKeyedTransient", ServiceLifetime.Transient)]
+[Service("FromKeyedTransient", ServiceLifetime.Transient)]
 public class FromTransientKeyedDependency([FromKeyedServices(42)] IFormattable dependency)
 {
     public IFormattable Dependency => dependency;
@@ -373,13 +373,14 @@ public interface INotificationService
     string Notify(string message);
 }
 
-[Service<string>("sms")]
+[Service("sms")]
 public class SmsNotificationService : INotificationService
 {
     public string Notify(string message) => $"[SMS] {message}";
 }
 
-[Service<string>("email")]
+// Showcases that legacy generic Service<TKey> attribute still works
+[Service("email")]
 [Service<string>("default")]
 public class EmailNotificationService : INotificationService
 {

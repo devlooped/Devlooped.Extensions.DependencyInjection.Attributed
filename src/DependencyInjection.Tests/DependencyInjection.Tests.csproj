@@ -17,6 +17,8 @@
     <PackageReference Include="System.Composition.AttributedModel" Version="8.0.0" />
     <PackageReference Include="System.Composition.Hosting" Version="8.0.0" />
     <PackageReference Include="System.Composition.TypedParts" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" Version="8.0.1" GeneratePathProperty="true" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +33,11 @@
   <Import Project="..\SponsorLink\SponsorLink\buildTransitive\Devlooped.Sponsors.targets" />
   <Import Project="..\DependencyInjection\Devlooped.Extensions.DependencyInjection.targets" />
   <Import Project="..\SponsorLink\SponsorLink.Analyzer.Tests.targets" />
+
+  <ItemGroup>
+    <Analyzer Include="$(PkgMicrosoft_Bcl_HashCode)\lib\netstandard2.0\Microsoft.Bcl.HashCode.dll" />
+    <Analyzer Include="$(PkgMicrosoft_Bcl_TimeProvider)\lib\netstandard2.0\Microsoft.Bcl.TimeProvider.dll" />
+  </ItemGroup>
 
   <!-- Force immediate reporting of status, no install-time grace period -->
   <PropertyGroup>

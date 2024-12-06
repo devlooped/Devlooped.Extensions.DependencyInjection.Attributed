@@ -48,7 +48,8 @@ The `ServiceLifetime` argument is optional and defaults to [ServiceLifetime.Sing
 
 > NOTE: The attribute is matched by simple name, so you can define your own attribute 
 > in your own assembly. It only has to provide a constructor receiving a 
-> [ServiceLifetime](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.servicelifetime) argument.
+> [ServiceLifetime](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.servicelifetime) argument, 
+> and optionally an overload receiving an `object key` for keyed services.
 
 A source generator will emit (at compile-time) an `AddServices` extension method for 
 [IServiceCollection](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) 
@@ -160,7 +161,7 @@ static partial class AddServicesExtension
 {
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
-        services.AddScoped(s => new MyService());
+        services.TryAddScoped(s => new MyService());
         services.AddScoped<IMyService>(s => s.GetRequiredService<MyService>());
         services.AddScoped<IDisposable>(s => s.GetRequiredService<MyService>());
         
@@ -180,10 +181,10 @@ If the service type has dependencies, they will be resolved from the service
 provider by the implementation factory too, like:
 
 ```csharp
-services.AddScoped(s => new MyService(s.GetRequiredService<IMyDependency>(), ...));
+services.TryAddScoped(s => new MyService(s.GetRequiredService<IMyDependency>(), ...));
 ```
 
-Keyed services will emit AddKeyedXXX methods instead.
+Keyed services will emit TryAddKeyedXXX methods instead.
 
 ## MEF Compatibility
 

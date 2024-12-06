@@ -381,7 +381,9 @@ public class SmsNotificationService : INotificationService
 
 // Showcases that legacy generic Service<TKey> attribute still works
 [Service("email")]
+#pragma warning disable CS0618 // Type or member is obsolete
 [Service<string>("default")]
+#pragma warning restore CS0618 // Type or member is obsolete
 public class EmailNotificationService : INotificationService
 {
     public string Notify(string message) => $"[Email] {message}";

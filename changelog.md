@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.1.0-rc.2](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-rc.2) (2024-12-06)
+
+[Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-rc.1...v2.1.0-rc.2)
+
 ## [v2.1.0-rc.1](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-rc.1) (2024-12-06)
 
 [Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-rc...v2.1.0-rc.1)

@@ -4,8 +4,6 @@
   <PropertyGroup>
     <!-- Backwards compatiblity -->
     <AddServiceAttribute Condition="'$(IncludeServiceAttribute)' != ''">$(IncludeServiceAttribute)</AddServiceAttribute>
-    <DefineConstants Condition="'$(Language)' == 'C#' and '$(AddServiceAttribute)' == 'true'">$(DefineConstants);DDI_ADDSERVICE</DefineConstants>
-    <DefineConstants Condition="'$(Language)' == 'C#' and '$(AddServicesExtension)' == 'true'">$(DefineConstants);DDI_ADDSERVICES</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,11 +11,20 @@
     <FundingPackageId Include="Devlooped.Extensions.DependencyInjection" />
   </ItemGroup>
 
-  <Target Name="_AddDDI_Constant" BeforeTargets="CoreCompile">
-    <PropertyGroup>
-      <DefineConstants Condition="'$(Language)' == 'C#' and '$(AddServiceAttribute)' == 'true' and !$(DefineConstants.Contains('DDI_ADDSERVICE'))">$(DefineConstants);DDI_ADDSERVICE</DefineConstants>
-      <DefineConstants Condition="'$(Language)' == 'C#' and '$(AddServicesExtension)' == 'true' and !$(DefineConstants.Contains('DDI_ADDSERVICES'))">$(DefineConstants);DDI_ADDSERVICES</DefineConstants>
-    </PropertyGroup>
-  </Target>
-  
+  <ItemGroup>
+    <CompilerVisibleProperty Include="AddServiceAttribute" />
+    <CompilerVisibleProperty Include="AddServicesExtension" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsEditor)' != 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)compile\ServiceAttribute*.cs" 
+             Visible="false"
+             PackageId="Devlooped.Extensions.DependencyInjection"
+             Condition="'$(AddServiceAttribute)' == 'true'" />
+    <Compile Include="$(MSBuildThisFileDirectory)compile\AddServices*.cs"
+             Visible="false"
+             PackageId="Devlooped.Extensions.DependencyInjection"
+             Condition="'$(AddServicesExtension)' == 'true'" />
+  </ItemGroup>
+
 </Project>

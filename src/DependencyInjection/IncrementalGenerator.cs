@@ -51,14 +51,44 @@ public class IncrementalGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var types = context.CompilationProvider.SelectMany((x, c) =>
+        var compilation = context.CompilationProvider.Select((compilation, _) =>
         {
-            var visitor = new TypesVisitor(s => x.IsSymbolAccessible(s), c);
-            x.GlobalNamespace.Accept(visitor);
+            // Add missing types as needed since we depend on the static generator potentially and can't 
+            // rely on its sources being added.
+            var parse = (CSharpParseOptions)compilation.SyntaxTrees.FirstOrDefault().Options;
+
+            if (compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.AddServicesNoReflectionExtension") is null)
+            {
+                compilation = compilation.AddSyntaxTrees(
+                    CSharpSyntaxTree.ParseText(ThisAssembly.Resources.AddServicesNoReflectionExtension.Text, parse));
+            }
+
+            if (compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.ServiceAttribute") is null)
+            {
+                compilation = compilation.AddSyntaxTrees(
+                    CSharpSyntaxTree.ParseText(ThisAssembly.Resources.ServiceAttribute.Text, parse),
+                    CSharpSyntaxTree.ParseText(ThisAssembly.Resources.ServiceAttribute_1.Text, parse));
+            }
+
+            return compilation;
+        });
+
+        var types = compilation.Combine(context.AnalyzerConfigOptionsProvider).SelectMany((x, c) =>
+        {
+            (var compilation, var options) = x;
+
+            // We won't add any registrations in this case.            
+            if (!options.GlobalOptions.TryGetValue("build_property.AddServicesExtension", out var value) ||
+                !bool.TryParse(value, out var addServices) || !addServices)
+                return Enumerable.Empty<INamedTypeSymbol>();
+
+            var visitor = new TypesVisitor(s => compilation.IsSymbolAccessible(s), c);
+            compilation.GlobalNamespace.Accept(visitor);
+
             // Also visit aliased references, which will not become part of the global:: namespace
-            foreach (var symbol in x.References
+            foreach (var symbol in compilation.References
                 .Where(r => !r.Properties.Aliases.IsDefaultOrEmpty)
-                .Select(r => x.GetAssemblyOrModuleSymbol(r)))
+                .Select(r => compilation.GetAssemblyOrModuleSymbol(r)))
             {
                 symbol?.Accept(visitor);
             }
@@ -152,8 +182,6 @@ public class IncrementalGenerator : IIncrementalGenerator
             })
             .Where(x => x != null);
 
-        var options = context.AnalyzerConfigOptionsProvider.Combine(context.CompilationProvider);
-
         // Only requisite is that we define Scoped = 0, Singleton = 1 and Transient = 2.
         // This matches https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.servicelifetime?view=dotnet-plat-ext-6.0#fields
 
@@ -164,11 +192,18 @@ public class IncrementalGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 predicate: static (node, _) => node is InvocationExpressionSyntax invocation && invocation.ArgumentList.Arguments.Count != 0 && GetInvokedMethodName(invocation) == nameof(AddServicesNoReflectionExtension.AddServices),
                 transform: static (ctx, _) => GetServiceRegistration((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel))
-            .Where(details => details != null)
+            .Combine(context.AnalyzerConfigOptionsProvider)
+            .Where(x =>
+            {
+                (var registration, var options) = x;
+                return options.GlobalOptions.TryGetValue("build_property.AddServicesExtension", out var value) &&
+                    bool.TryParse(value, out var addServices) && addServices && registration is not null;
+            })
+            .Select((x, _) => x.Left)
             .Collect();
 
         // Project matching service types to register with the given lifetime.
-        var conventionServices = types.Combine(methodInvocations.Combine(context.CompilationProvider)).SelectMany((pair, cancellationToken) =>
+        var conventionServices = types.Combine(methodInvocations.Combine(compilation)).SelectMany((pair, cancellationToken) =>
         {
             var (typeSymbol, (registrations, compilation)) = pair;
             var results = ImmutableArray.CreateBuilder<ServiceSymbol>();
@@ -196,33 +231,33 @@ public class IncrementalGenerator : IIncrementalGenerator
             .SelectMany((tuple, _) => ImmutableArray.CreateRange([tuple.Item1, tuple.Item2]))
             .SelectMany((items, _) => items.Distinct().ToImmutableArray());
 
-        RegisterServicesOutput(context, finalServices, options);
+        RegisterServicesOutput(context, finalServices, compilation);
     }
 
-    void RegisterServicesOutput(IncrementalGeneratorInitializationContext context, IncrementalValuesProvider<ServiceSymbol> services, IncrementalValueProvider<(AnalyzerConfigOptionsProvider Left, Compilation Right)> options)
+    void RegisterServicesOutput(IncrementalGeneratorInitializationContext context, IncrementalValuesProvider<ServiceSymbol> services, IncrementalValueProvider<Compilation> compilation)
     {
         context.RegisterImplementationSourceOutput(
-            services.Where(x => x!.Lifetime == 0 && x.Key is null).Select((x, _) => new KeyedService(x!.Type, null)).Collect().Combine(options),
+            services.Where(x => x!.Lifetime == 0 && x.Key is null).Select((x, _) => new KeyedService(x!.Type, null)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddSingleton", ctx, data));
 
         context.RegisterImplementationSourceOutput(
-            services.Where(x => x!.Lifetime == 1 && x.Key is null).Select((x, _) => new KeyedService(x!.Type, null)).Collect().Combine(options),
+            services.Where(x => x!.Lifetime == 1 && x.Key is null).Select((x, _) => new KeyedService(x!.Type, null)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddScoped", ctx, data));
 
         context.RegisterImplementationSourceOutput(
-            services.Where(x => x!.Lifetime == 2 && x.Key is null).Select((x, _) => new KeyedService(x!.Type, null)).Collect().Combine(options),
+            services.Where(x => x!.Lifetime == 2 && x.Key is null).Select((x, _) => new KeyedService(x!.Type, null)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddTransient", ctx, data));
 
         context.RegisterImplementationSourceOutput(
-            services.Where(x => x!.Lifetime == 0 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(options),
+            services.Where(x => x!.Lifetime == 0 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddKeyedSingleton", ctx, data));
 
         context.RegisterImplementationSourceOutput(
-            services.Where(x => x!.Lifetime == 1 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(options),
+            services.Where(x => x!.Lifetime == 1 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddKeyedScoped", ctx, data));
 
         context.RegisterImplementationSourceOutput(
-            services.Where(x => x!.Lifetime == 2 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(options),
+            services.Where(x => x!.Lifetime == 2 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddKeyedTransient", ctx, data));
     }
 
@@ -240,13 +275,22 @@ public class IncrementalGenerator : IIncrementalGenerator
 
         var options = (CSharpParseOptions)invocation.SyntaxTree.Options;
 
-        // NOTE: we need to add the sources that *another* generator emits (the static files) 
-        // because otherwise all invocations will basically have no semantic info since it wasn't there 
-        // when the source generations invocations started.
-        var compilation = semanticModel.Compilation.AddSyntaxTrees(
-            CSharpSyntaxTree.ParseText(ThisAssembly.Resources.ServiceAttribute.Text, options),
-            CSharpSyntaxTree.ParseText(ThisAssembly.Resources.ServiceAttribute_1.Text, options),
-            CSharpSyntaxTree.ParseText(ThisAssembly.Resources.AddServicesNoReflectionExtension.Text, options));
+        var compilation = semanticModel.Compilation;
+
+        // Add missing types as needed since we depend on the static generator potentially and can't 
+        // rely on its sources being added.
+        if (compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.AddServicesNoReflectionExtension") is null)
+        {
+            compilation = compilation.AddSyntaxTrees(
+                CSharpSyntaxTree.ParseText(ThisAssembly.Resources.AddServicesNoReflectionExtension.Text, options));
+        }
+
+        if (compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.ServiceAttribute") is null)
+        {
+            compilation = compilation.AddSyntaxTrees(
+                CSharpSyntaxTree.ParseText(ThisAssembly.Resources.ServiceAttribute.Text, options),
+                CSharpSyntaxTree.ParseText(ThisAssembly.Resources.ServiceAttribute_1.Text, options));
+        }
 
         var model = compilation.GetSemanticModel(invocation.SyntaxTree);
 
@@ -292,46 +336,37 @@ public class IncrementalGenerator : IIncrementalGenerator
         return null;
     }
 
-    void AddPartial(string methodName, SourceProductionContext ctx, (ImmutableArray<KeyedService> Types, (AnalyzerConfigOptionsProvider Config, Compilation Compilation) Options) data)
+    void AddPartial(string methodName, SourceProductionContext ctx, (ImmutableArray<KeyedService> Types, Compilation Compilation) data)
     {
         var builder = new StringBuilder()
             .AppendLine("// <auto-generated />");
 
-        var rootNs = data.Options.Config.GlobalOptions.TryGetValue("build_property.AddServicesNamespace", out var value) && !string.IsNullOrEmpty(value)
-            ? value
-            : "Microsoft.Extensions.DependencyInjection";
-
-        var className = data.Options.Config.GlobalOptions.TryGetValue("build_property.AddServicesClassName", out value) && !string.IsNullOrEmpty(value) ?
-            value : "AddServicesNoReflectionExtension";
-
-        foreach (var alias in data.Options.Compilation.References.SelectMany(r => r.Properties.Aliases))
+        foreach (var alias in data.Compilation.References.SelectMany(r => r.Properties.Aliases))
         {
             builder.AppendLine($"extern alias {alias};");
         }
 
         builder.AppendLine(
           $$"""
-            #if DDI_ADDSERVICES
             using Microsoft.Extensions.DependencyInjection.Extensions;
             using System;
             
-            namespace {{rootNs}}
+            namespace Microsoft.Extensions.DependencyInjection
             {
-                static partial class {{className}}
+                static partial class AddServicesNoReflectionExtension
                 {
                     static partial void {{methodName}}Services(IServiceCollection services)
                     {
             """);
 
-        AddServices(data.Types.Where(x => x.Key is null).Select(x => x.Type), data.Options.Compilation, methodName, builder);
-        AddKeyedServices(data.Types.Where(x => x.Key is not null), data.Options.Compilation, methodName, builder);
+        AddServices(data.Types.Where(x => x.Key is null).Select(x => x.Type), data.Compilation, methodName, builder);
+        AddKeyedServices(data.Types.Where(x => x.Key is not null), data.Compilation, methodName, builder);
 
         builder.AppendLine(
         """
                     }
                 }
             }
-            #endif
             """);
 
         ctx.AddSource(methodName + ".g", builder.ToString().Replace("\r\n", "\n").Replace("\n", Environment.NewLine));

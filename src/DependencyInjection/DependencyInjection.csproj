@@ -28,7 +28,8 @@
   <ItemGroup>
     <None Update="Devlooped.Extensions.DependencyInjection.props" CopyToOutputDirectory="PreserveNewest" PackFolder="build" />
     <None Update="Devlooped.Extensions.DependencyInjection.targets" CopyToOutputDirectory="PreserveNewest" PackFolder="build" />
-    <EmbeddedCode Include="ServiceAttribute*.cs;AddServicesNoReflectionExtension.cs" />
+    <None Include="compile\*.cs" CopyToOutputDirectory="PreserveNewest" PackFolder="build\compile" />
+    <EmbeddedCode Include="compile\*.cs" />
   </ItemGroup>
 
   <PropertyGroup Label="SponsorLink">

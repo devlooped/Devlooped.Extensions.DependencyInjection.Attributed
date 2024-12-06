@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.1.0-rc.3](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-rc.3) (2024-12-06)
+
+[Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-rc.2...v2.1.0-rc.3)
+
+:sparkles: Implemented enhancements:
+
+- Don't report inconsitencies if lifetimes match [\#135](https://github.com/devlooped/DependencyInjection/pull/135) (@kzu)
+
 ## [v2.1.0-rc.2](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-rc.2) (2024-12-06)
 
 [Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-rc.1...v2.1.0-rc.2)

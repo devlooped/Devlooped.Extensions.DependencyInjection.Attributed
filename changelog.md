@@ -1,5 +1,20 @@
 # Changelog
 
+## [v2.1.0.rc.1](https://github.com/devlooped/DependencyInjection/tree/v2.1.0.rc.1) (2024-12-06)
+
+[Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-rc...v2.1.0.rc.1)
+
+:sparkles: Implemented enhancements:
+
+- Report inconsistent lifetime registrations in conventions [\#115](https://github.com/devlooped/DependencyInjection/issues/115)
+- Detect and report inconsistencies in registration lifetimes [\#134](https://github.com/devlooped/DependencyInjection/pull/134) (@kzu)
+- Drastically simplify implementation by removing customization [\#133](https://github.com/devlooped/DependencyInjection/pull/133) (@kzu)
+- Allow service key in Service attribute itself [\#131](https://github.com/devlooped/DependencyInjection/pull/131) (@kzu)
+
+:twisted_rightwards_arrows: Merged:
+
+- Update readme.md with new conventions feature [\#132](https://github.com/devlooped/DependencyInjection/pull/132) (@kzu)
+
 ## [v2.1.0-rc](https://github.com/devlooped/DependencyInjection/tree/v2.1.0-rc) (2024-12-03)
 
 [Full Changelog](https://github.com/devlooped/DependencyInjection/compare/v2.1.0-beta...v2.1.0-rc)

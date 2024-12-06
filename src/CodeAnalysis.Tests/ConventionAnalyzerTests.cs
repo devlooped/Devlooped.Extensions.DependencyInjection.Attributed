@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Devlooped.Extensions.DependencyInjection;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Testing;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -54,7 +57,7 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        }.WithPreprocessorSymbols();
+        };
 
         var expected = Verifier.Diagnostic(ConventionsAnalyzer.AssignableTypeOfRequired).WithLocation(0);
         test.ExpectedDiagnostics.Add(expected);
@@ -98,7 +101,7 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        }.WithPreprocessorSymbols();
+        };
 
         //var expected = Verifier.Diagnostic(ConventionsAnalyzer.AssignableTypeOfRequired).WithLocation(0);
         //test.ExpectedDiagnostics.Add(expected);
@@ -145,7 +148,7 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
                     .AddPackages(ImmutableArray.Create(
                         new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
             },
-        }.WithPreprocessorSymbols();
+        };
 
         var expected = Verifier.Diagnostic(ConventionsAnalyzer.OpenGenericType).WithLocation(0);
         test.ExpectedDiagnostics.Add(expected);
@@ -153,4 +156,62 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
         await test.RunAsync();
     }
 
+    [Fact]
+    public async Task WarnIfAmbiguousLifetime()
+    {
+        var test = new CSharpSourceGeneratorTest<IncrementalGenerator, DefaultVerifier>
+        {
+            TestBehaviors = TestBehaviors.SkipGeneratedSourcesCheck,
+            TestCode =
+            """
+            using System;
+            using Microsoft.Extensions.DependencyInjection;
+            
+            public interface IRepository { }
+            public class MyRepository : IRepository { }
+            
+            public static class Program
+            {
+                public static void Main()
+                {
+                    var services = new ServiceCollection();
+                    {|#0:services.AddServices(typeof(IRepository), ServiceLifetime.Scoped)|};
+                    {|#1:services.AddServices("Repository", ServiceLifetime.Singleton)|};
+                }
+            }
+            """,
+            TestState =
+            {
+                AnalyzerConfigFiles =
+                {
+                    ("/.editorconfig",
+                    """
+                    is_global = true
+                    build_property.AddServicesExtension = true
+                    """)
+                },
+                Sources =
+                {
+                    StaticGenerator.AddServicesExtension,
+                    StaticGenerator.ServiceAttribute,
+                    StaticGenerator.ServiceAttributeT,
+                },
+                ReferenceAssemblies = new ReferenceAssemblies(
+                    "net8.0",
+                    new PackageIdentity(
+                        "Microsoft.NETCore.App.Ref", "8.0.0"),
+                        Path.Combine("ref", "net8.0"))
+                    .AddPackages(ImmutableArray.Create(
+                        new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
+            },
+        };
+
+        var expected = Verifier.Diagnostic(IncrementalGenerator.AmbiguousLifetime)
+            .WithArguments("MyRepository", "Scoped, Singleton")
+            .WithLocation(0).WithLocation(1);
+
+        test.ExpectedDiagnostics.Add(expected);
+
+        await test.RunAsync();
+    }
 }

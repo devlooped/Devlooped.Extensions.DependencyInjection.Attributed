@@ -9,7 +9,6 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using KeyedService = (Microsoft.CodeAnalysis.INamedTypeSymbol Type, Microsoft.CodeAnalysis.TypedConstant? Key);
 
@@ -22,11 +21,21 @@ namespace Devlooped.Extensions.DependencyInjection;
 [Generator(LanguageNames.CSharp)]
 public class IncrementalGenerator : IIncrementalGenerator
 {
-    class ServiceSymbol(INamedTypeSymbol type, int lifetime, TypedConstant? key)
+    public static DiagnosticDescriptor AmbiguousLifetime { get; } =
+        new DiagnosticDescriptor(
+        "DDI004",
+        "Ambiguous lifetime registration.",
+        "More than one registration matches {0} with lifetimes {1}.",
+        "Build",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    class ServiceSymbol(INamedTypeSymbol type, int lifetime, TypedConstant? key, Location? location)
     {
         public INamedTypeSymbol Type => type;
         public int Lifetime => lifetime;
         public TypedConstant? Key => key;
+        public Location? Location => location;
 
         public override bool Equals(object? obj)
         {
@@ -42,7 +51,7 @@ public class IncrementalGenerator : IIncrementalGenerator
             => HashCode.Combine(SymbolEqualityComparer.Default.GetHashCode(type), lifetime, key);
     }
 
-    record ServiceRegistration(int Lifetime, TypeSyntax? AssignableTo, string? FullNameExpression)
+    record ServiceRegistration(int Lifetime, TypeSyntax? AssignableTo, string? FullNameExpression, Location? Location)
     {
         Regex? regex;
 
@@ -175,7 +184,7 @@ public class IncrementalGenerator : IIncrementalGenerator
                         }
                     }
 
-                    services.Add(new(x, lifetime, key));
+                    services.Add(new(x, lifetime, key, attr.ApplicationSyntaxReference?.GetSyntax().GetLocation()));
                 }
 
                 return services.ToImmutableArray();
@@ -220,7 +229,7 @@ public class IncrementalGenerator : IIncrementalGenerator
                 if (registration!.FullNameExpression != null && !registration.Regex.IsMatch(typeSymbol.ToFullName(compilation)))
                     continue;
 
-                results.Add(new ServiceSymbol(typeSymbol, registration.Lifetime, null));
+                results.Add(new ServiceSymbol(typeSymbol, registration.Lifetime, null, registration.Location));
             }
 
             return results.ToImmutable();
@@ -259,6 +268,31 @@ public class IncrementalGenerator : IIncrementalGenerator
         context.RegisterImplementationSourceOutput(
             services.Where(x => x!.Lifetime == 2 && x.Key is not null).Select((x, _) => new KeyedService(x!.Type, x.Key!)).Collect().Combine(compilation),
             (ctx, data) => AddPartial("AddKeyedTransient", ctx, data));
+
+        context.RegisterImplementationSourceOutput(services.Collect(), ReportInconsistencies);
+    }
+
+    void ReportInconsistencies(SourceProductionContext context, ImmutableArray<ServiceSymbol> array)
+    {
+        var grouped = array.GroupBy(x => x.Type, SymbolEqualityComparer.Default).Where(g => g.Count() > 1).ToImmutableArray();
+        if (grouped.Length == 0)
+            return;
+
+        foreach (var group in grouped)
+        {
+            // report if within the group, there are different lifetimes with the same key (or no key)
+            foreach (var keyed in group.GroupBy(x => x.Key?.Value).Where(g => g.Count() > 1))
+            {
+                var lifetimes = string.Join(", ", keyed.Select(x => x.Lifetime).Distinct()
+                    .Select(x => x switch { 0 => "Singleton", 1 => "Scoped", 2 => "Transient", _ => "Unknown" }));
+
+                var location = keyed.Where(x => x.Location != null).FirstOrDefault()?.Location;
+                var otherLocations = keyed.Where(x => x.Location != null).Skip(1).Select(x => x.Location!);
+
+                context.ReportDiagnostic(Diagnostic.Create(AmbiguousLifetime,
+                    location, otherLocations, keyed.First().Type.ToDisplayString(), lifetimes));
+            }
+        }
     }
 
     static string? GetInvokedMethodName(InvocationExpressionSyntax invocation) => invocation.Expression switch
@@ -330,7 +364,7 @@ public class IncrementalGenerator : IIncrementalGenerator
 
             if (assignableTo != null || fullNameExpression != null)
             {
-                return new ServiceRegistration(lifetime, assignableTo, fullNameExpression);
+                return new ServiceRegistration(lifetime, assignableTo, fullNameExpression, invocation.GetLocation());
             }
         }
         return null;

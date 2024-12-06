@@ -214,4 +214,58 @@ public class ConventionAnalyzerTests(ITestOutputHelper Output)
 
         await test.RunAsync();
     }
+
+    [Fact]
+    public async Task NoWarnIfMultipleSameLifetime()
+    {
+        var test = new CSharpSourceGeneratorTest<IncrementalGenerator, DefaultVerifier>
+        {
+            TestBehaviors = TestBehaviors.SkipGeneratedSourcesCheck,
+            TestCode =
+            """
+            using System;
+            using Microsoft.Extensions.DependencyInjection;
+            
+            public interface IRepository { }
+
+            [Service]
+            public class MyRepository : IRepository { }
+            
+            public static class Program
+            {
+                public static void Main()
+                {
+                    var services = new ServiceCollection();
+                    services.AddServices(typeof(IRepository));
+                }
+            }
+            """,
+            TestState =
+            {
+                AnalyzerConfigFiles =
+                {
+                    ("/.editorconfig",
+                    """
+                    is_global = true
+                    build_property.AddServicesExtension = true
+                    """)
+                },
+                Sources =
+                {
+                    StaticGenerator.AddServicesExtension,
+                    StaticGenerator.ServiceAttribute,
+                    StaticGenerator.ServiceAttributeT,
+                },
+                ReferenceAssemblies = new ReferenceAssemblies(
+                    "net8.0",
+                    new PackageIdentity(
+                        "Microsoft.NETCore.App.Ref", "8.0.0"),
+                        Path.Combine("ref", "net8.0"))
+                    .AddPackages(ImmutableArray.Create(
+                        new PackageIdentity("Microsoft.Extensions.DependencyInjection", "8.0.0")))
+            },
+        };
+
+        await test.RunAsync();
+    }
 }

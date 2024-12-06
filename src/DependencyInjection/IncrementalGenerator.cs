@@ -283,14 +283,18 @@ public class IncrementalGenerator : IIncrementalGenerator
             // report if within the group, there are different lifetimes with the same key (or no key)
             foreach (var keyed in group.GroupBy(x => x.Key?.Value).Where(g => g.Count() > 1))
             {
-                var lifetimes = string.Join(", ", keyed.Select(x => x.Lifetime).Distinct()
-                    .Select(x => x switch { 0 => "Singleton", 1 => "Scoped", 2 => "Transient", _ => "Unknown" }));
+                var lifetimes = keyed.Select(x => x.Lifetime).Distinct()
+                    .Select(x => x switch { 0 => "Singleton", 1 => "Scoped", 2 => "Transient", _ => "Unknown" })
+                    .ToArray();
+
+                if (lifetimes.Length == 1)
+                    continue;
 
                 var location = keyed.Where(x => x.Location != null).FirstOrDefault()?.Location;
                 var otherLocations = keyed.Where(x => x.Location != null).Skip(1).Select(x => x.Location!);
 
                 context.ReportDiagnostic(Diagnostic.Create(AmbiguousLifetime,
-                    location, otherLocations, keyed.First().Type.ToDisplayString(), lifetimes));
+                    location, otherLocations, keyed.First().Type.ToDisplayString(), string.Join(", ", lifetimes)));
             }
         }
     }
